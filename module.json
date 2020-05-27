@@ -1,0 +1,10 @@
+{
+  "name": "FateAddon",
+  "title": "Fate Adddon",
+  "description": "A small module that collects some tools for managing Fate Condesed-style stress and the Indebted condition on Fate Core characters. Designed for use with Nick East's Fate Core system.",
+  "system":"fate",
+  "author": "Richard Bellingham (Skimble)",
+  "scripts": ["./FateAddon.js"],
+  "version": "1.0.0",
+  "minimumCoreVersion": "0.6.0"
+}
