@@ -1,7 +1,7 @@
 class FateAddon{
     static prepareButtons(hudButtons){   
             let hud = hudButtons.find(val => {return val.name == "token";})
-            
+
             if (hud){
                 hud.tools.push({
                     name:"ViewStress",//Completed
@@ -24,6 +24,13 @@ class FateAddon{
                         title:"Set stress boxes for the selected token",
                         icon:"fas fa-cogs",
                         onClick: ()=> {callSetStress();},
+                        button:true
+                    });
+                    hud.tools.push({
+                        name:"callHit",//Completed
+                        title:"Hit a character for stress",
+                        icon:"fas fa-fist-raised",
+                        onClick: ()=> {callHit();},
                         button:true
                     });
                     hud.tools.push({
@@ -348,6 +355,7 @@ function callSetStress(){
                     }
                 });
             } else {
+                // As the character has stress, render the sheet accordingly.
                 if (item != null && item != undefined) {
                     actor.updateEmbeddedEntity("OwnedItem", {
                         _id: item._id,
