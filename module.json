@@ -7,5 +7,6 @@
   "scripts": ["./FateAddon.js"],
   "version": "2.0.0",
   "minimumCoreVersion": "0.6.0",
-  "compatibleCoreVersion":"0.6.1"
+  "compatibleCoreVersion":"0.6.1",
+  "download":"https://github.com/Sk1mble/FateAddon/archive/FateAddon-2.0.zip"
 }
