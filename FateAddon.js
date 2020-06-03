@@ -1,4 +1,6 @@
 class FateAddon extends Application {
+    static style = `style="background: white; color: black; font-family:Arial;"`
+    
     super(options){
     }
 
@@ -53,7 +55,7 @@ async function convertConditions (data){
             boxString += `<input type="checkbox" data-id="${uni}"/>`;
         }
         boxString +="</td></tr><tr>"
-        boxString += `<td style="background: black; color: white;">Notes:<textarea id="${uni}notes" style="background: white; color: black;"></textarea>`
+        boxString += `<td style="background: black; color: white;">Notes:<textarea id="${uni}notes" ${FateAddon.style}></textarea>`
         boxString +="</tr></table>"
         await actor.updateEmbeddedEntity("OwnedItem", {
             _id:extra._id,
@@ -86,7 +88,7 @@ Hooks.on ('closeExtraSheet', async (data) => {
             boxString+=`<input type="checkbox" data-id="${uni}"></input>`
         }
         boxString +="</td></tr><tr>"
-        boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${uni}notes" style="background: white; color: black;">${na.value}</textarea>`
+        boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${uni}notes" ${FateAddon.style}>${na.value}</textarea>`
         boxString +="</tr></table>"
         await actor.updateEmbeddedEntity("OwnedItem", {
             _id:extra._id,
@@ -187,7 +189,7 @@ function viewStress(){
                         }
                     }
                     boxString +="</td></tr><tr>"
-                    boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${uni}notes" style="background: white; color: black;">${d.value}</textarea>`
+                    boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${uni}notes" ${FateAddon.style}>${d.value}</textarea>`
                     boxString +="</tr></table>"
                     await actor.updateEmbeddedEntity("OwnedItem", {
                         _id:stressCondition.data._id,
@@ -273,7 +275,7 @@ function viewStress(){
                                 boxString+=`<input type="checkbox" data-id="${pUni}"></input>`
                             }
                                 boxString +="</td></tr><tr>"
-                                boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${pUni}notes" style="background: white; color: black;">${pd.value}</textarea>`
+                                boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${pUni}notes" ${FateAddon.style}>${pd.value}</textarea>`
                                 boxString +="</tr></table>"
                                 await token.actor.updateEmbeddedEntity("OwnedItem", {
                                     _id:pStressCondition.data._id,
@@ -288,7 +290,7 @@ function viewStress(){
                                 boxString+=`<input type="checkbox" data-id="${mUni}"></input>`
                             }
                             boxString +="</td></tr><tr>"
-                            boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${mUni}notes" style="background: white; color: black;">${md.value}</textarea>`
+                            boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${mUni}notes" ${FateAddon.style}>${md.value}</textarea>`
                             boxString +="</tr></table>"
                             await token.actor.updateEmbeddedEntity("OwnedItem", {
                                 _id:mStressCondition.data._id,
@@ -304,10 +306,10 @@ function viewStress(){
             let buttons= {}
             let actor;            
             // Set up the table parameters
-            let table=`<table border="1" cellspacing="0" cellpadding="4" style="width: auto;">`;
+            let table=`<table id="sview" border="1" cellspacing="0" cellpadding="4" style="width: auto;">`;
 
             // Set up the appearance of the table header
-            let rows=[`<tr><td style="background: black; color: white;">Character</td><td style="background: black; color: white;">Physical Stress</td><td style="background: black; color: white;">Mental Stress</td><td style="background: black; color: white;">Mild</td><td style="background: black; color: white;">Mild</td><td style="background: black; color: white;">Moderate</td><td style="background: black; color: white;">Severe</td>`];
+            let rows=[`<tr><td style="background: black; color: white;" width="150">Character</td><td style="background: black; color: white;" width="80">Physical Stress</td><td style="background: black; color: white;" width="80">Mental Stress</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Moderate</td><td style="background: black; color: white;" width="150">Severe</td>`];
             
             //This is where we get the stress information for each actor.
             
@@ -383,7 +385,7 @@ function viewStress(){
                     try {
                         if ((item.data.health.physical || item.data.health.mental) && item.data.level > 4){
                             //console.log("Should be creating second mild consequence");
-                            mild2 = `<textarea name="consequence" style="background: white; color: black;" id="mild2_${actor.id}" ${disabled}>${consequences.mild.two}</textarea>`
+                            mild2 = `<textarea name="consequence" ${FateAddon.style} id="mild2_${actor.id}" ${disabled}>${consequences.mild.two}</textarea>`
                         }
                     } catch {
 
@@ -394,19 +396,20 @@ function viewStress(){
                             <td>${actor.name}</td>
                             ${pboxString}
                             ${mboxString}
-                            <td><textarea name="consequence" style="background: white; color: black;" id="mild1_${actor.id}" ${disabled}>${consequences.mild.one}</textarea></td>
+                            <td><textarea name="consequence" ${FateAddon.style} id="mild1_${actor.id}" ${disabled}>${consequences.mild.one}</textarea></td>
                             <td>${mild2}</td>
-                            <td><textarea name="consequence" style="background: white; color: black;"id="moderate_${actor.id}" ${disabled}>${consequences.moderate.value}</textarea></td>
-                            <td><textarea name="consequence" style="background: white; color: black;" id="severe_${actor.id}" ${disabled}>${consequences.severe.value}</textarea></td>
+                            <td><textarea name="consequence" ${FateAddon.style}id="moderate_${actor.id}" ${disabled}>${consequences.moderate.value}</textarea></td>
+                            <td><textarea name="consequence" ${FateAddon.style} id="severe_${actor.id}" ${disabled}>${consequences.severe.value}</textarea></td>
                         </tr>`
                 rows.push(row);
                 }
             let myContents=`${table}`;
             rows.forEach(element => myContents+=element)
-            myContents+="</table>"
             if(game.user.isGM){
-                myContents+=`<button type="button" name="clear">Clear All Stress</button>`;
+                myContents+=`<tr><td colspan="7" align="center"><button style="height:30px; width:200px" name="clear">Clear All Stress</button></td></tr>`;
             }
+            myContents+="</table>"
+            
             return myContents;    
         }
 
@@ -419,8 +422,8 @@ function viewStress(){
     let opt=Dialog.defaultOptions;
     opt.resizable=true;
     opt.title="View Stress and Consequences";
-    opt.width=800;
-    opt.height=400;
+    opt.width=1190;
+    opt.height=500;
     opt.minimizable=true;
 
     var viewer;
