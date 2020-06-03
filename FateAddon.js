@@ -422,7 +422,7 @@ function viewStress(){
     let opt=Dialog.defaultOptions;
     opt.resizable=true;
     opt.title="View Stress and Consequences";
-    opt.width=1080;
+    opt.width=1190;
     opt.height=500;
     opt.minimizable=true;
 
