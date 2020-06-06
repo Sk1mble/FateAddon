@@ -490,18 +490,18 @@ function viewAspects(){
 
                 // get name
                 var charName=actor.name;
-                console.log(name);
+                //console.log(name);
 
                 // get High Concept
                 var hc=actor.data.data.aspects.hc.value;
 
                 // get Trouble
                 var trouble=actor.data.data.aspects.trouble.value;
-                console.log(trouble);
+                //console.log(trouble);
 
                 // Get Other 1
                 var other1=actor.data.data.aspects.other.value[0];
-                console.log(other1);
+                //console.log(other1);
 
                 // Get Other 2
                 var other2=actor.data.data.aspects.other.value[1];
