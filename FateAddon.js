@@ -24,7 +24,15 @@ class FateAddon extends Application {
                     button:true
                 });
             }
-
+            if (hud){
+                hud.tools.push({
+                    name:"ViewFatePoints",
+                    title:"View a summary of Fate Points for all players (and the GM)",
+                    icon:"fas fa-coins",
+                    onClick: ()=> {viewFatePoints();},
+                    button:true
+                });
+            }
         }
     }
     
@@ -141,7 +149,7 @@ function viewStress(){
 
                 myButton.on("click", event => this._onClickButton(event, html));
                 stressboxes.on("click", event => this._onCheckBoxClick(event, html));
-                consequences.on("keyup", event => this._onEnterEvent(event, html));
+                consequences.on("change", event => this._onChangeEvent(event, html));
               }   
               
         async _onCheckBoxClick(event, html){
@@ -203,33 +211,31 @@ function viewStress(){
             //console.log(sindex); 
         }
 
-        async _onEnterEvent(event, data) {
-                if(event.keyCode === 13){
-                    var actorId = event.target.id.split("_")[1];
-                    var consequence = event.target.id.split("_")[0];
-                    //console.log(actorId+" "+consequence);
-                    var actor=game.actors.find(actor=> actor.id == actorId);
-                    var consequenceText = event.target.value.trim();
-                    //console.log(consequenceText);
-                    
-                    // We now have everything we need to update the actor's consequences.
-                    // They are all the way down in actor.data.data.health.cons
-                    if (consequence == "mild1"){
-                        //console.log("Should be updating mild");
-                        await actor.update({"data.health.cons.mild.one":`${consequenceText}`});
-                    }
-
-                    if (consequence == "mild2"){
-                        await actor.update({"data.health.cons.mild.two":`${consequenceText}`})
-                    }
-                    if (consequence == "moderate"){
-                        await actor.update({"data.health.cons.moderate.value":`${consequenceText}`})
-                    }
-                    if (consequence == "severe"){
-                        await actor.update({"data.health.cons.severe.value":`${consequenceText}`})
-                    }
+        async _onChangeEvent(event, data) {
+                var actorId = event.target.id.split("_")[1];
+                var consequence = event.target.id.split("_")[0];
+                //console.log(actorId+" "+consequence);
+                var actor=game.actors.find(actor=> actor.id == actorId);
+                var consequenceText = event.target.value.trim();
+                //console.log(consequenceText);
+                
+                // We now have everything we need to update the actor's consequences.
+                // They are all the way down in actor.data.data.health.cons
+                if (consequence == "mild1"){
+                    //console.log("Should be updating mild");
+                    await actor.update({"data.health.cons.mild.one":`${consequenceText}`});
                 }
-            }
+
+                if (consequence == "mild2"){
+                    await actor.update({"data.health.cons.mild.two":`${consequenceText}`})
+                }
+                if (consequence == "moderate"){
+                    await actor.update({"data.health.cons.moderate.value":`${consequenceText}`})
+                }
+                if (consequence == "severe"){
+                    await actor.update({"data.health.cons.severe.value":`${consequenceText}`})
+                }
+        }
 
         async _onClickButton(event, html) {
                 //console.log("Event target id "+event.target.id);
@@ -464,7 +470,7 @@ function viewAspects(){
             return content;
         }
 
-        // This method reads the stress from the tokens in the scene and outputs it to the StressViewer window.
+        // This method reads the aspects from the tokens in the scene and outputs them to the AspectViewer window.
         prepareAspects(){
             let tokens = canvas.tokens.placeables;
             let buttons= {}
@@ -523,6 +529,121 @@ function viewAspects(){
 
     var viewer;
     viewer = new AspectViewer(opt);
+    viewer.render(true);
+}
+
+function viewFatePoints(){
+
+    const delay = 200;
+
+    Hooks.on('updateUser', () => {
+        setTimeout(function(){viewer.render(false);},delay);
+    })
+
+    Hooks.on('updateActor', () => {
+        setTimeout(function(){viewer.render(false);},delay);
+    })
+
+    Hooks.on('renderCoreCharacterSheet', () => {
+        setTimeout(function(){viewer.render(false);},delay);
+    })
+
+    class FatePointViewer extends Application {
+        super(options){
+        }
+
+        activateListeners(html) {
+            super.activateListeners(html);
+            const fpInput = html.find("input[type='number']")
+
+            fpInput.on("change", event => this._onfpupdate(event, html));
+          }   
+          
+    async _onfpupdate(event, html){
+        let userId = event.target.id;
+        let user = game.users.find(u => u.id==userId);
+        var fp = event.target.value;
+        
+        if (user.isGM){
+            (async ()=>{await user.setFlag("FateAddon","gmfatepoints",`${fp}`)})();
+        } else {
+            let actor = user.character;
+            (async ()=> {await actor.update({"data.details.points.current":`${fp}`});})();
+        }
+
+    }
+
+        getData (){
+            let content={content:`${this.prepareFatePoints()}`}
+            return content;
+        }
+
+        // This method gets the fate points for each player and the GM and outputs it to the window in a way that the GM can edit.
+        prepareFatePoints(){
+            let users = game.users.entries;
+            let buttons= {}
+            let actor;            
+            // Set up the table parameters
+            var table=`<table border="1" cellspacing="0" cellpadding="4" style="width: auto;">`;
+
+            // Set up the appearance of the table header
+            let rows=[`<tr><td style="background: black; color: white;">Portrait</td><td style="background: black; color: white;">Character</td><td style="background: black; color: white;">Fate Points</td>`];
+            
+            //This is where we get the FP information for each actor.
+            //The GM's fate points will be stored on the GM user.
+
+            //TODO: Now we just need to set up the action listener, which will fire on onchange
+
+            //if (user.isgm) - then get fate points from the user.getFlag("FateAddon","gmfatepoints"). If that's undefined, set to 0 and write back out to the GM's flag.
+            //Otherwise, get the user's character's fate points.
+            
+            for (let i=0;i<users.length;i++){
+                let user = users[i];
+                let actor;
+                let image = "Tokens/icons/hand-of-god.png";
+                let name = user.name;
+                let fp = 0;
+                let disabled = "";
+
+                //We only want to display fate points for logged in users.
+                if (!game.user.isGM){
+                    disabled = "disabled";
+                }
+                
+                if (user.active){
+                        if (!user.isGM){
+                            actor = users[i].character;
+                            image = actor.data.img;
+                            name=actor.name;
+                            fp = actor.data.data.details.points.current;
+                        } else {
+                            fp = user.getFlag("FateAddon","gmfatepoints");
+                            if (fp == undefined || fp == null){
+                                fp = 0;
+                                user.setFlag("FateAddon","gmfatepoints",0);
+                            }
+                        }                   
+                        rows.push(`<tr><td><img src="${image}" width="50" height="50"></td><td>${name}</td><td><input type="number" id="${user.id}" value="${fp}" ${disabled}></input></td></tr>`);
+                }
+            }
+            var myContents= table;
+            rows.forEach(row=> {
+                myContents+=row;
+            })
+            myContents += `</table>`;
+
+            return myContents;    
+        }
+    }
+    let opt=Dialog.defaultOptions;
+    opt.resizable=true;
+    opt.title="View Fate Points";
+    opt.width=400;
+    opt.height=300;
+    opt.minimizable=true;
+
+    var viewer;
+    viewer = new FatePointViewer(opt);
     viewer.render(true);
 }
 
