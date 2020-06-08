@@ -200,11 +200,17 @@ function viewStress(){
                     var pStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Physical Stress");
                     var mStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
                     
-                    if (pStress==undefined || mStress ==  undefined){
+                    if (pStress==undefined && mStress == undefined){
                         continue;
                     }
+
+                    if (pStress==undefined){
+                        pStress = {name:"Physical Stress", "boxes":0, "marked":0, "description":"Not Used", "notes":"Not Used"}
+                    }
+                    if (mStress == undefined){
+                        mStress = {name:"Mental Stress", "boxes":0, "marked":0, "description":"Not Used", "notes":"Not Used"}
+                    }
                 } catch {
-                    continue;
                 }
 
                 var pboxString="<td>"
