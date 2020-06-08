@@ -103,10 +103,10 @@ function viewStress(){
             
             //Get the stress boxes for each actor
             //First, get the actor.
-            var actorId=event.target.id.split("_")[0];
+            var tokenId=event.target.id.split("_")[0];
             var con=event.target.id.split("_")[1];
-            var tok = canvas.tokens.placeables.find(t => t.actor.id == actorId);
-            var actor = tok.actor;
+            var token = canvas.tokens.placeables.find(t => t.id == tokenId);
+            var actor = token.actor;
 
             var conditions=actor.getFlag("FateAddon","conditions");
             var condition=conditions.find(c => c.name==con);
@@ -115,8 +115,8 @@ function viewStress(){
             } else {
                 condition.marked--;
             }
-            await tok.actor.unsetFlag("FateAddon","conditions");
-            await tok.actor.setFlag("FateAddon","conditions",conditions);
+            await actor.unsetFlag("FateAddon","conditions");
+            await actor.setFlag("FateAddon","conditions",conditions);
             await game.socket.emit("module.FateAddon",{"Updated":true});
             this.render(false);
         }
@@ -124,7 +124,7 @@ function viewStress(){
         async _onChangeEvent(event, data) {
             // This function outputs changes to consequences made from the StressViewer window.
                 //console.log(event.target);
-                var actorId = event.target.id.split("_")[1];
+                var tokenId = event.target.id.split("_")[1];
                 var consequence = event.target.id.split("_")[0];
                 //console.log(actorId+" "+consequence);
 
@@ -132,7 +132,8 @@ function viewStress(){
                 //console.log(tokens[0].id)
 
                 //Find the token that has the matching ID, then get its actor, for those are the consequences we seek.
-                var actor = tokens.find(token=> token.actor._id == actorId).actor;
+                //Except this is finding the wrong actor.
+                var actor = tokens.find(token=> token.id == tokenId).actor;
 
                 //var actor=game.actors.find(actor=> actor.id == actorId);
                 var consequenceText = event.target.value.trim();
@@ -195,26 +196,26 @@ function viewStress(){
 
             for (let i=0;i<tokens.length;i++){
                 
-                // Get the actor
-                let actor = tokens[i].actor;
+                // Get the token
+                let token = tokens[i];
                
-                let consequences = actor.data.data.health.cons;
+                let consequences = token.actor.data.data.health.cons;
 
                 // Get this actor's physical stress and mental stress and number of boxes already marked.
                 try {
-                    var pStress=actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Physical Stress");
-                    var mStress=actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
+                    var pStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Physical Stress");
+                    var mStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
                 } catch {
-                    return (`You need to setup physical and mental stress conditions on ${actor.name} before this window will work. You can do that by right clicking on their token and launching the Condition Viewer`);
+                    return (`You need to setup physical and mental stress conditions on ${token.name} before this window will work. You can do that by right clicking on their token and launching the Condition Viewer`);
                 }
 
                 var pboxString="<td>"
                 //Need to add the physical stress boxes to pboxString here.
                 for (let i = 0; i<pStress.marked; i++){
-                    pboxString+=`<input type ="checkbox" id="${actor.id}_${pStress.name}" ${disabled} checked></input>`
+                    pboxString+=`<input type ="checkbox" id="${token.id}_${pStress.name}" ${disabled} checked></input>`
                 }
                 for (let i = 0; i<pStress.boxes - pStress.marked; i++){
-                    pboxString+=`<input type ="checkbox" id="${actor.id}_${pStress.name}" ${disabled}></input>`
+                    pboxString+=`<input type ="checkbox" id="${token.id}_${pStress.name}" ${disabled}></input>`
                 }
                 pboxString+="</td>"
 
@@ -223,34 +224,34 @@ function viewStress(){
                 var mboxString="<td>"
                 //Need to add the mental stress boxes to mboxString here.
                 for (let i = 0; i<mStress.marked; i++){
-                    mboxString+=`<input type ="checkbox" id="${actor.id}_${mStress.name}" ${disabled} checked></input>`
+                    mboxString+=`<input type ="checkbox" id="${token.id}_${mStress.name}" ${disabled} checked></input>`
                 }
                 for (let i = 0; i<mStress.boxes - mStress.marked; i++){
-                    mboxString+=`<input type ="checkbox" id="${actor.id}_${mStress.name}" ${disabled}></input>`
+                    mboxString+=`<input type ="checkbox" id="${token.id}_${mStress.name}" ${disabled}></input>`
                 }
                 mboxString+="</td>"
 
                 //We need to not display a second Mild consequence if the actor isn't entitled to one. 
                 var mild2 = "";
-                var items = actor.data.items;
+                var items = token.actor.data.items;
                 items.forEach(item =>{
                     try {
                         if ((item.data.health.physical || item.data.health.mental) && item.data.level > 4){
                             //console.log("Should be creating second mild consequence");
-                            mild2 = `<textarea name="consequence" ${FateAddon.style} id="mild2_${actor.id}" ${disabled}>${consequences.mild.two}</textarea>`
+                            mild2 = `<textarea name="consequence" ${FateAddon.style} id="mild2_${token.id}" ${disabled}>${consequences.mild.two}</textarea>`
                         }
                     } catch {
                     }
                 })
 
                 let row = `<tr>
-                            <td>${actor.name}</td>
+                            <td>${token.name}</td>
                             ${pboxString}
                             ${mboxString}
-                            <td><textarea name="consequence" ${FateAddon.style} id="mild1_${actor.id}" ${disabled}>${consequences.mild.one}</textarea></td>
+                            <td><textarea name="consequence" ${FateAddon.style} id="mild1_${token.id}" ${disabled}>${consequences.mild.one}</textarea></td>
                             <td>${mild2}</td>
-                            <td><textarea name="consequence" ${FateAddon.style}id="moderate_${actor.id}" ${disabled}>${consequences.moderate.value}</textarea></td>
-                            <td><textarea name="consequence" ${FateAddon.style} id="severe_${actor.id}" ${disabled}>${consequences.severe.value}</textarea></td>
+                            <td><textarea name="consequence" ${FateAddon.style}id="moderate_${token.id}" ${disabled}>${consequences.moderate.value}</textarea></td>
+                            <td><textarea name="consequence" ${FateAddon.style} id="severe_${token.id}" ${disabled}>${consequences.severe.value}</textarea></td>
                         </tr>`
                 rows.push(row);
                 }
