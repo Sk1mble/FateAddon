@@ -201,10 +201,10 @@ function viewStress(){
                     var mStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
                     
                     if (pStress==undefined || mStress ==  undefined){
-                        return (`You need to setup physical and mental stress conditions on ${token.name} before this window will work. You can do that by right clicking on their token and launching the Condition Viewer. They should be called Physical Stress and Mental Stress respectively.`);
+                        continue;
                     }
                 } catch {
-                    return (`You need to setup physical and mental stress conditions on ${token.name} before this window will work. You can do that by right clicking on their token and launching the Condition Viewer. They should be called Physical Stress and Mental Stress respectively.`);
+                    continue;
                 }
 
                 var pboxString="<td>"
