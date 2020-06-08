@@ -1,12 +1,13 @@
 {
   "name": "FateAddon",
-  "title": "Fate Adddon",
-  "description": "A module to help you manage Fate conditions (including Condensed-style stress). Pairs well with Popcorn. This version is completely different from FateAddon v.1 and uses a different methodology for storing data inside the character sheet rather than using flags.  Designed for use with Nick East's Fate Core system.",
+  "title": "Fate Addon",
+  "description": "A module to help you manage Fate conditions (and flexible, expandable stress boxes) and to keep on top of aspects and fate points. Pairs well with Popcorn. This version has been rebuilt to use flags and JSON datatypes to store and manage whatever conditions you want to set up.  Designed for use with Nick East's Fate Core system.",
   "system":"fate",
   "author": "Richard Bellingham (Skimble)",
   "scripts": ["./FateAddon.js"],
-  "version": "2.1.0",
+  "version": "3.0.0",
   "minimumCoreVersion": "0.6.0",
-  "compatibleCoreVersion":"0.6.1",
-  "download":"https://github.com/Sk1mble/FateAddon/archive/FateAddon-2.0.zip"
+  "compatibleCoreVersion":"0.6.2",
+  "download":"https://github.com/Sk1mble/FateAddon/archive/FateAddon-3.0.zip",
+  "socket":true
 }

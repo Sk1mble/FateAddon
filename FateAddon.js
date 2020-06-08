@@ -38,72 +38,10 @@ class FateAddon extends Application {
     
 var fa = new FateAddon();
 
-//This part of the code manages conditions that are created as an Extra with the word 'condition' or 'Condition' somewhere in the name
-//and which terminate with _ and then a number (e.g. Condition: Physical Stress_4). It creates a formatted series of checkboxes on the 
-//charactersheet and allows the data to be stored.
-
-async function convertConditions (data){
-    // Let's do some stuff if this extra is a Condition and we haven't already created the boxes for it.
-    var extra = data.object; //We'll use the extra's ID as part of the key for its conditions' boxes and text area. Key will be condition name + extra ID.
-    var actor = data.actor;
-
-    //Split the condition name and number of boxes
-    var split = extra.data.name.split("_");
-    
-    if (extra.data.name.toUpperCase().includes("CONDITION") && split.length >1){
-        //This means we haven't initialised this field yet.
-        var name = split[0];
-        var boxes = split[1];
-        var uni = name+extra._id;
-
-        //Form the header row.
-        var boxString=`<table title="condition"><tr><td style="background: black; color: white;">Boxes:</td></tr>`;
-        boxString +="<tr><td>"
-        for (let i = 0; i<boxes; i++){
-            boxString += `<input type="checkbox" data-id="${uni}"/>`;
-        }
-        boxString +="</td></tr><tr>"
-        boxString += `<td style="background: black; color: white;">Notes:<textarea id="${uni}notes" ${FateAddon.style}></textarea>`
-        boxString +="</tr></table>"
-        await actor.updateEmbeddedEntity("OwnedItem", {
-            _id:extra._id,
-            name:`${name}`,
-            "data.description.value":`${boxString}`
-        });
-    }
-}
-
-Hooks.on ('renderExtraSheet', async (data) => {
-    convertConditions(data);
-})
-
-// Now to save any changes made to the sheet to the underlying data when it's closed.
-Hooks.on ('closeExtraSheet', async (data) => {
-    var extra = data.object;
-    var actor = data.actor;
-    var uni = extra.data.name+extra._id;
-
-    if (extra.data.name.toUpperCase().includes("CONDITION")){
-        var cba = document.querySelectorAll(`input[data-id="${uni}"]:checked`); // Checked boxes
-        var cbb = document.querySelectorAll(`input[data-id="${uni}"]`) // All boxes
-        var na = document.querySelector(`textarea[id="${uni}notes"]`) 
-        var boxString=`<table title="condition"><tr><td style="background: black; color: white;">Boxes:</td></tr>`;
-        boxString +="<tr id='boxes'><td>"
-        for (let i = 0; i < cba.length; i++){
-            boxString+=`<input type="checkbox" data-id="${uni}" checked></input>`
-        }
-        for (let i = 0; i < (cbb.length - cba.length); i++){
-            boxString+=`<input type="checkbox" data-id="${uni}"></input>`
-        }
-        boxString +="</td></tr><tr>"
-        boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${uni}notes" ${FateAddon.style}>${na.value}</textarea>`
-        boxString +="</tr></table>"
-        await actor.updateEmbeddedEntity("OwnedItem", {
-            _id:extra._id,
-            "data.description.value":`${boxString}`
-        });
-    }
-})
+//Step one: Create an archtitecture for managing stress and conditions at the token level.
+//Step two: Create a right-click menu on tokens for managing their stress and conditions.
+//Step three: Update the Stressviewer to suck data from the flags used in the previous steps
+//instead of from checkboxes on the character sheet.
 
 //This is the function that launches the StressViewer
 
@@ -115,19 +53,22 @@ function viewStress(){
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    Hooks.on('updateOwnedItem', () => {
+    Hooks.on('closeConditionDialog', () => {
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    Hooks.on('updateActor', () => {
+    Hooks.on('closeConditionEditor', () => {
+        setTimeout(function(){viewer.render(false);},delay);
+    })
+    Hooks.on('renderConditionViewer', () => {
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    Hooks.on('renderCoreCharacterSheet', () => {
+    Hooks.on('closeConditionViewer', () => {
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    Hooks.on('updateToken', () => {
+    Hooks.on('renderActorSheet', () => {
         setTimeout(function(){viewer.render(false);},delay);
     })
 
@@ -135,7 +76,11 @@ function viewStress(){
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    //Hooks.on('controlToken',()=>{viewer.render(false);})
+    Hooks.on('updateToken', (scene, token, data) => {
+        if (data.actorData!=undefined){
+            setTimeout(function(){viewer.render(false);},delay);
+        }
+    })
 
     class StressViewer extends Application {
         super(options){
@@ -151,71 +96,45 @@ function viewStress(){
                 stressboxes.on("click", event => this._onCheckBoxClick(event, html));
                 consequences.on("change", event => this._onChangeEvent(event, html));
               }   
-              
+        
+        //TODO: Implement the code to store changes to the stress checkboxes.
         async _onCheckBoxClick(event, html){
-            var actor=game.actors.find(actor => actor.id == event.target.dataset.actor);
-            var itemId = event.target.dataset.item;
-            var stype = event.target.dataset.type;
-            var sindex = event.target.dataset.index;
-
-             // Get the Items for each actor representing their stress boxes
-            var stressCondition = actor.items.find(i=>i.type == "Extra" && i._id == itemId);   
+            //This is the function that reads changes to the stress boxes and outputs them to the Conditions flag as is proper.
             
-             //Get the stress boxes for each actor
-             if (stressCondition != undefined && stressCondition != null){
-                var uni = stressCondition.data.name+stressCondition.data._id;
-                var description = stressCondition.data.data.description.value;
-                var doc = new DOMParser().parseFromString(description, "text/html");
-                var boxes = doc.querySelectorAll(`input[data-id="${uni}"]`)
-                //console.log(boxes);
+            //Get the stress boxes for each actor
+            //First, get the actor.
+            var actorId=event.target.id.split("_")[0];
+            var con=event.target.id.split("_")[1];
+            var tok = canvas.tokens.placeables.find(t => t.actor.id == actorId);
+            var actor = tok.actor;
+
+            var conditions=actor.getFlag("FateAddon","conditions");
+            var condition=conditions.find(c => c.name==con);
+            if (event.target.checked){
+                condition.marked++;
+            } else {
+                condition.marked--;
             }
-
-            //Get the textarea for each actor's stress tracks.
-            try{
-                    var d = doc.querySelector(`textarea[id="${uni}notes"]`);
-                }   catch {
-                    }
-            
-            if (boxes != undefined){
-                    var boxString=`<table title="condition"><tr><td style="background: black; color: white;">Boxes:</td></tr>`;
-                    boxString +="<tr id='boxes'><td>"
-                    var isChecked = false;
-
-                    for (let i = 0; i < (boxes.length); i++){                   
-                    // This is the box that was changed on the stress viewer.
-                    if (i==sindex){
-                        isChecked = event.target.checked;
-                        //console.log(isChecked);
-                    } else {
-                        isChecked = boxes[i].checked;
-                        //console.log(isChecked)
-                    }
-                        if (isChecked){
-                        boxString+=`<input type="checkbox" data-id="${uni}" checked></input>`
-                    } else {
-                        boxString+=`<input type="checkbox" data-id="${uni}"></input>`
-                        }
-                    }
-                    boxString +="</td></tr><tr>"
-                    boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${uni}notes" ${FateAddon.style}>${d.value}</textarea>`
-                    boxString +="</tr></table>"
-                    await actor.updateEmbeddedEntity("OwnedItem", {
-                        _id:stressCondition.data._id,
-                        "data.description.value":`${boxString}`
-                        });
-                
-               }
-            //console.log(actor); 
-            //console.log(itemId);
-            //console.log(stype);
-            //console.log(sindex); 
+            await tok.actor.unsetFlag("FateAddon","conditions");
+            await tok.actor.setFlag("FateAddon","conditions",conditions);
+            await game.socket.emit("module.FateAddon",{"Updated":true});
+            this.render(false);
         }
 
         async _onChangeEvent(event, data) {
+            // This function outputs changes to consequences made from the StressViewer window.
+                //console.log(event.target);
                 var actorId = event.target.id.split("_")[1];
                 var consequence = event.target.id.split("_")[0];
                 //console.log(actorId+" "+consequence);
-                var actor=game.actors.find(actor=> actor.id == actorId);
+
+                var tokens = canvas.tokens.placeables;
+                //console.log(tokens[0].id)
+
+                //Find the token that has the matching ID, then get its actor, for those are the consequences we seek.
+                var actor = tokens.find(token=> token.actor._id == actorId).actor;
+
+                //var actor=game.actors.find(actor=> actor.id == actorId);
                 var consequenceText = event.target.value.trim();
                 //console.log(consequenceText);
                 
@@ -235,78 +154,28 @@ function viewStress(){
                 if (consequence == "severe"){
                     await actor.update({"data.health.cons.severe.value":`${consequenceText}`})
                 }
+                await game.socket.emit("module.FateAddon",{"Updated":true});
         }
 
         async _onClickButton(event, html) {
-                //console.log("Event target id "+event.target.id);
-                
                 //This is the functionality to clear the stress of all tokens.
 
                 let tokens = canvas.tokens.placeables;
-
-                tokens.forEach(token => {
-                    // Get the Items for each actor representing their stress boxes
-                    var pStressCondition = token.actor.items.find(i=>i.type == "Extra" && i.name.toUpperCase().includes("CONDITION") && i.name.toUpperCase().includes ("PHYSICAL") && i.name.toUpperCase().includes("STRESS"));
-                    var mStressCondition = token.actor.items.find(i=>i.type == "Extra" && i.name.toUpperCase().includes("CONDITION") && i.name.toUpperCase().includes ("MENTAL") && i.name.toUpperCase().includes("STRESS"));
-
-                    //Get the stress boxes for each actor
-                    if (pStressCondition != undefined && pStressCondition != null && mStressCondition != undefined && mStressCondition != null){
-                        var pUni = pStressCondition.data.name+pStressCondition.data._id;
-                        var pDescription = pStressCondition.data.data.description.value;
-                        var pdoc = new DOMParser().parseFromString(pDescription, "text/html");
-                        var pboxes = pdoc.querySelectorAll(`input[data-id="${pUni}"]`)
-                    }
-                    
-                    //console.log(mStressCondition);
-                    if (mStressCondition != undefined && mStressCondition != null && mStressCondition != undefined && mStressCondition != null){
-                        var mDescription = mStressCondition.data.data.description.value;
-                        var mUni = mStressCondition.data.name+mStressCondition.data._id;
-                        var mdoc = new DOMParser().parseFromString(mDescription, "text/html");
-                        var mboxes = mdoc.querySelectorAll(`input[data-id="${mUni}"]`)
-                    }
-
-                    //Get the textarea for each actor's stress tracks.
-                    try{
-                        var pd = pdoc.querySelector(`textarea[id="${pUni}notes"]`);
-                        var md = mdoc.querySelector(`textarea[id="${mUni}notes"]`);
-                    } catch {
-
-                    }
-                    //Output the same number of text boxes with the same ID, only this time they need to be blank. We know the unique ID to use in the data.
-
-                    if (pboxes != undefined){(async ()=>{
-                            var boxString=`<table title="condition"><tr><td style="background: black; color: white;">Boxes:</td></tr>`;
-                            boxString +="<tr id='boxes'><td>"
-                            for (let i = 0; i < (pboxes.length); i++){
-                                boxString+=`<input type="checkbox" data-id="${pUni}"></input>`
-                            }
-                                boxString +="</td></tr><tr>"
-                                boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${pUni}notes" ${FateAddon.style}>${pd.value}</textarea>`
-                                boxString +="</tr></table>"
-                                await token.actor.updateEmbeddedEntity("OwnedItem", {
-                                    _id:pStressCondition.data._id,
-                                    "data.description.value":`${boxString}`
-                                });
-                    })()}
-
-                    if (mboxes != undefined){(async ()=>{
-                            var boxString=`<table title="condition"><tr><td style="background: black; color: white;">Boxes:</td></tr>`;
-                            boxString +="<tr id='boxes'><td>"
-                            for (let i = 0; i < mboxes.length; i++){
-                                boxString+=`<input type="checkbox" data-id="${mUni}"></input>`
-                            }
-                            boxString +="</td></tr><tr>"
-                            boxString += `<td style="background: black; color: white;" id="description">Notes:<textarea id="${mUni}notes" ${FateAddon.style}>${md.value}</textarea>`
-                            boxString +="</tr></table>"
-                            await token.actor.updateEmbeddedEntity("OwnedItem", {
-                                _id:mStressCondition.data._id,
-                                "data.description.value":`${boxString}`
-                            });
-                    })()}
+                tokens.forEach(async token=>{
+                    var conds = token.actor.getFlag("FateAddon","conditions");
+                    //console.log(conds);
+                    var pStress = conds.find(condition=>condition.name=="Physical Stress");
+                    pStress.marked = 0;
+                    var mStress = conds.find(condition=>condition.name=="Mental Stress");
+                    mStress.marked = 0;
+                    await token.actor.unsetFlag("FateAddon","conditions");
+                    await token.actor.setFlag("FateAddon","conditions",conds);
+                    await game.socket.emit("module.FateAddon",{"Updated":true});
+                    this.render(false);
                 })
             }
 
-        // This method reads the stress from the tokens in the scene and outputs it to the StressViewer window.
+        //This method reads the stress from the tokens in the scene and outputs it to the StressViewer window.
         prepareStress(){
             let tokens = canvas.tokens.placeables;
             let buttons= {}
@@ -318,73 +187,50 @@ function viewStress(){
             let rows=[`<tr><td style="background: black; color: white;" width="150">Character</td><td style="background: black; color: white;" width="80">Physical Stress</td><td style="background: black; color: white;" width="80">Mental Stress</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Moderate</td><td style="background: black; color: white;" width="150">Severe</td>`];
             
             //This is where we get the stress information for each actor.
-            
+
+            var disabled="";
+            if (!game.user.isGM){
+                disabled="disabled";
+            }
+
             for (let i=0;i<tokens.length;i++){
                 
                 // Get the actor
                 let actor = tokens[i].actor;
+               
                 let consequences = actor.data.data.health.cons;
 
-                // Get the items representing physical stress and mental stress
-                var pStressCondition = actor.items.find(i=>i.type == "Extra" && i.name.toUpperCase().includes("CONDITION") && i.name.toUpperCase().includes ("PHYSICAL") && i.name.toUpperCase().includes("STRESS"));
-                var mStressCondition = actor.items.find(i=>i.type == "Extra" && i.name.toUpperCase().includes("CONDITION") && i.name.toUpperCase().includes ("MENTAL") && i.name.toUpperCase().includes("STRESS"));
-
-                if (pStressCondition != undefined && pStressCondition != null && mStressCondition != undefined && mStressCondition != null){
-                    var pDescription = pStressCondition.data.data.description.value;
-                    var pdoc = new DOMParser().parseFromString(pDescription, "text/html");
-                    var pboxes = pdoc.querySelectorAll(`input[type="checkbox"]`)
-                }
-
-                if (mStressCondition != undefined && mStressCondition != null && mStressCondition != undefined && mStressCondition != null){
-                    var mDescription = mStressCondition.data.data.description.value;
-                    //console.log(pDescription);
-                    var mdoc = new DOMParser().parseFromString(mDescription, "text/html");
-                    var mboxes = mdoc.querySelectorAll(`input[type="checkbox"]`)
-                }
-
-                var disabled="";
-                if (!game.user.isGM){
-                    disabled="disabled";
+                // Get this actor's physical stress and mental stress and number of boxes already marked.
+                try {
+                    var pStress=actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Physical Stress");
+                    var mStress=actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
+                } catch {
+                    return (`You need to setup physical and mental stress conditions on ${actor.name} before this window will work. You can do that by right clicking on their token and launching the Condition Viewer`);
                 }
 
                 var pboxString="<td>"
-                if (pboxes != undefined){
-                        try {
-                            for (let bi=0; bi<pboxes.length;bi++){
-                                //console.log(actor);
-                                if (pboxes[bi].checked){
-                                    pboxString+=`<input type="checkbox" data-actor="${actor.id}" data-item="${pStressCondition.data._id}" data-index="${bi}" data-type="physical" checked ${disabled}></input>`
-                                }
-                                else {
-                                    pboxString+=`<input type="checkbox" data-actor="${actor.id}" data-item="${pStressCondition.data._id}" data-index="${bi}" data-type="physical" ${disabled}></input>`
-                                }
-                        }
-                    } catch {
-
-                    }
+                //Need to add the physical stress boxes to pboxString here.
+                for (let i = 0; i<pStress.marked; i++){
+                    pboxString+=`<input type ="checkbox" id="${actor.id}_${pStress.name}" ${disabled} checked></input>`
+                }
+                for (let i = 0; i<pStress.boxes - pStress.marked; i++){
+                    pboxString+=`<input type ="checkbox" id="${actor.id}_${pStress.name}" ${disabled}></input>`
                 }
                 pboxString+="</td>"
 
                 var mboxString="<td>"
-                if (mboxes != undefined){
-                    try {
-                        for (let bi=0; bi<mboxes.length;bi++){
-                            //console.log(box);
-                            if (mboxes[bi].checked){
-                                mboxString+=`<input type="checkbox" data-actor="${actor.id}" data-item="${mStressCondition.data._id}" data-index="${bi}" data-type="mental" checked ${disabled}></input>`
-                            }
-                            else {
-                                mboxString+=`<input type="checkbox" data-actor="${actor.id}" data-item="${mStressCondition.data._id}" data-index="${bi}" data-type="mental" ${disabled}></input>`
-                            }
-                        }
-                    }catch {
-                            
-                    }
+                // Here is where we add the mental stress boxes.
+                var mboxString="<td>"
+                //Need to add the mental stress boxes to mboxString here.
+                for (let i = 0; i<mStress.marked; i++){
+                    mboxString+=`<input type ="checkbox" id="${actor.id}_${mStress.name}" ${disabled} checked></input>`
+                }
+                for (let i = 0; i<mStress.boxes - mStress.marked; i++){
+                    mboxString+=`<input type ="checkbox" id="${actor.id}_${mStress.name}" ${disabled}></input>`
                 }
                 mboxString+="</td>"
 
                 //We need to not display a second Mild consequence if the actor isn't entitled to one. 
-
                 var mild2 = "";
                 var items = actor.data.items;
                 items.forEach(item =>{
@@ -394,7 +240,6 @@ function viewStress(){
                             mild2 = `<textarea name="consequence" ${FateAddon.style} id="mild2_${actor.id}" ${disabled}>${consequences.mild.two}</textarea>`
                         }
                     } catch {
-
                     }
                 })
 
@@ -414,17 +259,14 @@ function viewStress(){
             if(game.user.isGM){
                 myContents+=`<tr><td colspan="7" align="center"><button style="height:30px; width:200px" name="clear">Clear All Stress</button></td></tr>`;
             }
-            myContents+="</table>"
-            
+            myContents+="</table>"            
             return myContents;    
         }
-
         getData (){
             let content={content:`${this.prepareStress()}`}
             return content;
         }
     }
-
     let opt=Dialog.defaultOptions;
     opt.resizable=true;
     opt.title="View Stress and Consequences";
@@ -435,6 +277,10 @@ function viewStress(){
     var viewer;
     viewer = new StressViewer(opt);
     viewer.render(true);
+    game.socket.on("module.FateAddon", data => {
+        viewer.render(false);
+        //console.log("Socket received");
+    })
 }
 
 function viewAspects(){
@@ -449,11 +295,7 @@ function viewAspects(){
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    Hooks.on('renderCoreCharacterSheet', () => {
-        setTimeout(function(){viewer.render(false);},delay);
-    })
-
-    Hooks.on('updateToken', () => {
+    Hooks.on('renderActorSheet', () => {
         setTimeout(function(){viewer.render(false);},delay);
     })
 
@@ -592,7 +434,7 @@ function viewFatePoints(){
             //This is where we get the FP information for each actor.
             //The GM's fate points will be stored on the GM user.
 
-            //TODO: Now we just need to set up the action listener, which will fire on onchange
+            //Now we just need to set up the action listener, which will fire on onchange
 
             //if (user.isgm) - then get fate points from the user.getFlag("FateAddon","gmfatepoints"). If that's undefined, set to 0 and write back out to the GM's flag.
             //Otherwise, get the user's character's fate points.
@@ -650,5 +492,320 @@ function viewFatePoints(){
 Hooks.on('getSceneControlButtons', function(hudButtons)
 {
     FateAddon.prepareButtons(hudButtons);
+})
+
+async function manageConditions(a){
+    var actor = a;
+    var conditions = actor.getFlag("FateAddon","conditions");
+    //console.log(conditions);
+    
+    //Initialise physical stress and mental stress for this actor, as no conditions have been set up yet.
+    if (conditions == undefined){
+        conditions = [
+            {
+                "name":"Physical Stress",
+                "boxes":3,
+                "marked":0,
+                "description":"Physical Stress (used by StressViewer)",
+                "notes":""
+            },{
+                "name":"Mental Stress",
+                "boxes":3,
+                "marked":0,
+                "description":"Mental Stress (used by StressViewer)",
+                "notes":""
+            }
+        ]
+        await actor.unsetFlag("FateAddon","conditions");
+        await actor.setFlag("FateAddon", "conditions",conditions);
+    }
+
+    class ConditionViewer extends Application {
+        super(options){
+        }
+
+        activateListeners(html) {
+            super.activateListeners(html);
+            const myButton = html.find("button[id='editConditions']");
+            const stressboxes = html.find("input[type='checkbox']")
+            const description = html.find("textarea")
+
+            myButton.on("click", event => this._onClickButton(event, html));
+            stressboxes.on("click", event => this._onCheckBoxClick(event, html));
+            description.on("change", event => this._onChangeEvent(event, html));
+        }
+
+        async _onClickButton(event, html){
+            let opt=Dialog.defaultOptions;
+            opt.resizable=true;
+            opt.title=`Edit Stress and Conditions for ${actor.name}`;
+            opt.width=825;
+            opt.height=600;
+            opt.minimizable=true;
+
+            var viewer;
+            viewer = new ConditionEditor(opt);
+            viewer.render(true);
+            game.socket.on("module.FateAddon", data => {
+                viewer.render(false);
+            })
+            const delay = 200;
+        }
+
+        async _onChangeEvent(event, html){
+            var n = event.target.id;
+            //console.log(n);
+            conditions.find(condition => condition.name==n).notes=event.target.value;
+            await actor.unsetFlag("FateAddon","conditions");
+            await actor.setFlag("FateAddon","conditions",conditions);
+            await game.socket.emit("module.FateAddon",{"Updated":true});
+            this.render(false);
+        }
+
+        async _onCheckBoxClick(event, html){
+            //console.log("Checkbox Clicked");
+            var c = event.target.checked;
+            //console.log(event.target.name);
+            if (c){
+                conditions.find(condition => condition.name==event.target.name).marked++;
+            }
+            if (!c){
+                conditions.find(condition => condition.name==event.target.name).marked--;
+            }
+            await actor.unsetFlag("FateAddon","conditions");
+            await actor.setFlag("FateAddon","conditions",conditions);
+            await game.socket.emit("module.FateAddon",{"Updated":true});
+            this.render(false);
+        }
+
+        getData(){
+            var disabled="";
+            if (!game.user.isGM){
+                disabled="disabled";
+            }
+            super.getData();
+            conditions = actor.getFlag("FateAddon","conditions");
+            var myContent ="";
+            let table=`<table id="cview" border="1" cellspacing="0" cellpadding="4" style="width: 800px; height: auto">`;
+            myContent+=`${table}<tr><td style="background: black; color: white;">Name</td><td style="background: black; color: white; width">Boxes</td><td style="background: black; color: white;">Notes</td></tr>`
+            conditions.forEach(condition=>{
+                myContent+="<tr>";
+                myContent+=`<td>${condition.name}</td>`;
+                myContent+=`<td>`;
+                for (let i = 0; i<condition.marked; i++){
+                    myContent+=`<input type ="checkbox" name="${condition.name}" checked ${disabled}></input>`
+                }
+                for (let i = 0; i<condition.boxes - condition.marked; i++){
+                    myContent+=`<input type ="checkbox" name="${condition.name}" ${disabled}></input>`
+                }
+                myContent+=`</td>`;
+                myContent+=`<td><textarea id="${condition.name}" ${FateAddon.style} ${disabled}>${condition.notes}</textarea></td>`
+                myContent+="</tr>";
+            })
+            if (game.user.isGM){
+                myContent+=`<tr><td colspan="3" align="center"><button type="button" id="editConditions" style="height:30px; width:200px">Edit or Add Conditions</button></td></tr>`
+            }
+            myContent+="</table>";
+            //console.log(myContent);
+            let content={content:`${myContent}`}
+            return content;
+        }
+    }
+
+    class ConditionEditor extends Application {
+        super(options){
+        }
+        
+        getData(){
+            Hooks.on('closeConditionDialog', () =>{
+                this.render(false);
+            })
+            super.getData();
+            conditions = actor.getFlag("FateAddon","conditions");
+            var myContent = "";
+            let table=`<table id="cview" border="1" cellspacing="0" cellpadding="4" style="width: 800px;">`;
+            myContent+=`${table}<tr><td style="background: black; color: white;">Name</td><td style="background: black; color: white; width">Boxes</td><td style="background: black; color: white;">Description</td><td style="background: black; color: white;">Delete?</td></tr>`
+            conditions.forEach(condition=>{
+                myContent+=`<tr>`
+                //elements required: name, boxes (marked appropriately), description, and delete button.
+                let name = condition.name;
+                myContent+=`<td>${name}</td>`
+                let boxes = condition.boxes;
+                let marked = condition.marked;
+                myContent+=`<td><input type="number" ${FateAddon.style} id="${name}" value=${boxes}></input></td>`
+                let description = condition.description;
+                myContent+=`<td><textarea ${FateAddon.style} id="${name}">${description}</textarea></td>`
+                myContent+=`<td><button buttontype="button" name="delete" id="${name}">Delete?</button></td>`
+                myContent+=`</tr>`
+            });
+            myContent+=`<tr><td colspan="4" align="center"><button type="button" id="addCondition" style="height:30px; width:200px">Add Condition</button></td></tr></table>`
+            let content={content:`${myContent}`}
+
+            return content;
+        }
+
+        activateListeners(html) {
+            super.activateListeners(html);
+            const deleteButton = html.find("button[name='delete']");
+            const newButton = html.find("button[id='addCondition']");
+            const inputboxes = html.find("input[type='number']");
+            const nameboxes = html.find("input[type='text']");
+            const descriptionboxes = html.find("textarea");
+        
+            deleteButton.on("click", event => this._onClickDeleteButton(event, html));
+            newButton.on("click", event => this._onClickNewButton(event, html));
+            inputboxes.on("change", event => this._onInputBoxesChange(event, html));
+            nameboxes.on("change", event => this._onNameBoxesChange(event, html));
+            descriptionboxes.on("change", event => this._onDescriptionBoxChange(event, html));
+          }   
+
+          async _onInputBoxesChange(event, html){
+                var n = event.target.id;
+                conditions.find(condition => condition.name==n).boxes=parseInt(event.target.value);
+                await actor.unsetFlag("FateAddon","conditions");
+                await actor.setFlag("FateAddon","conditions",conditions);
+                await game.socket.emit("module.FateAddon",{"Updated":true});
+          }
+
+          async _onClickDeleteButton(event, html){
+              var n = event.target.id;
+              var toGo = conditions.find(condition => condition.name==n);
+              var index = conditions.indexOf(toGo);
+              conditions.splice(index, 1);
+              await actor.unsetFlag("FateAddon","conditions");
+              await actor.setFlag("FateAddon","conditions",conditions);
+              this.render(false);
+          }
+
+          async _onDescriptionBoxChange(event, html){
+                var n = event.target.id;
+                conditions.find(condition => condition.name==n).description=event.target.value;
+                await actor.unsetFlag("FateAddon","conditions");
+                await actor.setFlag("FateAddon","conditions",conditions);
+          }
+
+          async _onClickNewButton(event, html){
+            class ConditionDialog extends Application {
+                super(){
+                }
+                activateListeners(html) {
+                    super.activateListeners(html);
+                    const myButton = html.find("button[name='add']");
+                    const boxesbox = html.find("input[type='number']");
+                    const description = html.find("textarea");
+                
+                    myButton.on("click", event => this._onClickButton(event, html));
+                  }   
+
+                  //action to perform when the add button is pressed (add this condition to list of conditions)
+                  async _onClickButton(event, html){
+                      let name = html.find("input[id='cName']")[0].value.trim();
+                      let boxes = parseInt(html.find("input[id='boxes']")[0].value,10);
+                      let description = html.find("textarea")[0].value.trim();
+                      //console.log(`${name} for ${boxes} boxes and ${description} as the description`);
+      
+                      let newCondition = {
+                                            "name":`${name}`,
+                                            "boxes":`${boxes}`,
+                                            "marked":0,
+                                            "description":`${description}`,
+                                            "notes":""
+                                        }
+                        if (conditions.find(con => con.name == name)){
+                            ui.notifications.error("Can't create duplicate condition.")
+                        } else {
+                            conditions.push(newCondition);
+                            await actor.unsetFlag("FateAddon","conditions");
+                            await actor.setFlag("FateAddon","conditions",conditions);
+                        }                    
+                        this.close();
+                  }
+
+                getData(){
+                    super.getData();
+                    conditions = actor.getFlag("FateAddon","conditions");
+                    var myContent="";
+                    myContent+=`<table border="1" cellspacing="0" cellpadding="4">`;
+                    myContent+=`
+                                <tr>
+                                    <td style="background:black; color:white">
+                                        Name:
+                                    </td>
+                                    <td>
+                                        <input type="text" ${FateAddon.style} id="cName"></input>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background:black; color:white">
+                                        Boxes:
+                                    </td>
+                                    <td>
+                                        <input type="number" ${FateAddon.style} id="boxes"></input>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="background:black; color:white">
+                                        Description:
+                                    </td>
+                                    <td>
+                                        <textarea ${FateAddon.style}>
+                                        </textarea>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <button type="button" name="add">Add Condition</button>
+                                    </td>
+                                </tr>`
+                    myContent+="</table>";
+                    let content={content:`${myContent}`}
+                    return content;
+                }
+            }
+            let opt=Dialog.defaultOptions;
+            opt.resizable=false;
+            opt.title=`Add a condition for ${actor.name}`;
+            opt.width=300;
+            opt.height=240;
+            opt.minimizable=true;
+            var cd;
+            cd = new ConditionDialog(opt);
+            cd.render(true);
+          }
+    }
+
+    let opt=Dialog.defaultOptions;
+    opt.resizable=true;
+    opt.title=`View Stress and Conditions for ${actor.name}`;
+    opt.width=825;
+    opt.height=600;
+    opt.minimizable=true;
+
+    var viewer;
+    viewer = new ConditionViewer(opt);
+    viewer.render(true);
+    game.socket.on("module.FateAddon", data => {
+        viewer.render(false);
+    })
+
+    const delay = 200;
+
+    Hooks.on('closeConditionEditor',async () => {
+            await viewer.render(false);
+    })
+}
+
+Hooks.on('renderTokenHUD', function(hudButtons, html, data){
+    if (true){
+        let button = $(`<div class="control-icon whisperBox"><i class="fas fa-user-injured"></i></div>`);
+        let col = html.find('.col.right');
+        col.append(button);
+     
+        button.find('i').click(async (ev) => {
+            tokenId=data._id;
+            var actor = canvas.tokens.placeables.find(t => t.data._id == tokenId).actor;
+            manageConditions(actor);
+        });
+    }
 })
 
