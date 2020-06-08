@@ -1,0 +1,4 @@
+Features a few small improvements and tweaks from 3.0 that make it work more reliably with regard to refreshing of the data etc.
+As of this release, you can delete one of the Physical or Mental stress conditions and a token will still appear in the StressViewer. 
+Delete both, and the token will just be skipped.
+The StressViewer will now also display even if it encounters tokens without stress defined.
