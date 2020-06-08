@@ -76,12 +76,6 @@ function viewStress(){
         setTimeout(function(){viewer.render(false);},delay);
     })
 
-    Hooks.on('updateToken', (scene, token, data) => {
-        if (data.actorData!=undefined){
-            setTimeout(function(){viewer.render(false);},delay);
-        }
-    })
-
     class StressViewer extends Application {
         super(options){
         }
@@ -793,6 +787,12 @@ async function manageConditions(a){
 
     Hooks.on('closeConditionEditor',async () => {
             await viewer.render(false);
+    })
+
+    Hooks.on('updateToken', (scene, token, data) => {
+        if (data.actorData!=undefined){
+            setTimeout(function(){viewer.render(false);},delay);
+        }
     })
 }
 
