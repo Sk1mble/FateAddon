@@ -619,7 +619,7 @@ async function manageConditions(a){
             conditions = actor.getFlag("FateAddon","conditions");
             var myContent = "";
             let table=`<table id="cview" border="1" cellspacing="0" cellpadding="4" style="width: 800px;">`;
-            myContent+=`${table}<tr><td style="background: black; color: white;">Name</td><td style="background: black; color: white; width">Boxes</td><td style="background: black; color: white;">Description</td><td style="background: black; color: white;">Delete?</td></tr>`
+            myContent+=`${table}<tr><td style="background: black; color: white;">Name</td><td style="background: black; color: white; width">Boxes</td><td style="background: black; color: white;">Description</td><td style="background: black; color: white;"></td></tr>`
             conditions.forEach(condition=>{
                 myContent+=`<tr>`
                 //elements required: name, boxes (marked appropriately), description, and delete button.
@@ -630,7 +630,7 @@ async function manageConditions(a){
                 myContent+=`<td><input type="number" ${FateAddon.style} id="${name}" value=${boxes}></input></td>`
                 let description = condition.description;
                 myContent+=`<td><textarea ${FateAddon.style} id="${name}">${description}</textarea></td>`
-                myContent+=`<td><button buttontype="button" name="delete" id="${name}">Delete?</button></td>`
+                myContent+=`<td><button buttontype="button" name="delete" id="${name}"><i class = "fas fa-trash"></button></td>`
                 myContent+=`</tr>`
             });
             myContent+=`<tr><td colspan="4" align="center"><button type="button" id="addCondition" style="height:30px; width:200px">Add Condition</button></td></tr></table>`
