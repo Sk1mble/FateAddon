@@ -337,7 +337,7 @@ function viewAspects(){
                 let actor = tokens[i].actor;
 
                 // get name
-                var charName=actor.name;
+                var charName=tokens[i].name;
                 //console.log(name);
 
                 // get High Concept
