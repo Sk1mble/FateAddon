@@ -10,9 +10,7 @@ Changelog for FateAddon 3.2
  
  WARNING: To support sheet stress, I had to reengineer how I was keeping track of marked boxes. This update will break any existing conditions on your characters.
  To fix them you will just need to go into the Condition Manager and set the number of boxes they should have, but you WILL lose data about any condition boxes that were checked before this update.
- Please ensure you make notes as necessary.
- 
- You can print out the characters to the console and look at their flags; they will still have a 'marked' number for each condition that was previously set up, that is the number of boxes that were marked in the old system.
+ Please ensure you make notes as necessary BEFORE updating.
  
 
 
