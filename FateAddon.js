@@ -209,7 +209,7 @@ function viewStress(){
                 await actor.unsetFlag("FateAddon","conditions");
                 await actor.setFlag("FateAddon","conditions",conditions);
                 await game.socket.emit("module.FateAddon",{"Updated":true});
-                this.render(false);n
+                this.render(false);
             }
         }
 
