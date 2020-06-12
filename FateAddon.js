@@ -103,7 +103,7 @@ function viewStress(){
             
             //Get the stress boxes for each actor
             //First, get the actor.
-            console.log(event.target.id)
+            //console.log(event.target.id)
             var tokenId=event.target.id.split("_")[0];
             var con=event.target.id.split("_")[1];
             var boxId = event.target.id.split("_")[2];
@@ -492,7 +492,6 @@ function viewStress(){
                 myContents+=`<tr><td colspan="7" align="center"><button style="height:30px; width:200px" name="clear">Clear All Stress</button></td></tr>`;
             }
             myContents+="</table>"     
-            console.log(myContents)       
             return myContents;    
         }
         getData (){
