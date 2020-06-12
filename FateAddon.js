@@ -76,6 +76,12 @@ function viewStress(){
         setTimeout(function(){viewer.render(false);},delay);
     })
 
+    Hooks.on('updateToken', (scene, token, data) => {
+        if (data.hidden!=undefined){
+          setTimeout(function(){viewer.render(false);},delay);
+        }
+    });
+
     class StressViewer extends Application {
         super(options){
         }
@@ -91,28 +97,120 @@ function viewStress(){
                 consequences.on("change", event => this._onChangeEvent(event, html));
               }   
         
-        //TODO: Implement the code to store changes to the stress checkboxes.
-        async _onCheckBoxClick(event, html){
+            //Implement the code to store changes to the stress checkboxes.
+            async _onCheckBoxClick(event, html){
             //This is the function that reads changes to the stress boxes and outputs them to the Conditions flag as is proper.
             
             //Get the stress boxes for each actor
             //First, get the actor.
+            console.log(event.target.id)
             var tokenId=event.target.id.split("_")[0];
             var con=event.target.id.split("_")[1];
+            var boxId = event.target.id.split("_")[2];
             var token = canvas.tokens.placeables.find(t => t.id == tokenId);
             var actor = token.actor;
 
-            var conditions=actor.getFlag("FateAddon","conditions");
-            var condition=conditions.find(c => c.name==con);
-            if (event.target.checked){
-                condition.marked++;
-            } else {
-                condition.marked--;
+            if (game.settings.get("FateAddon", "usesheetstress")){
+                //Do this if they want to use sheet stress
+                if (con="Accelerated Stress"){
+                    if (event.target.checked){
+                        if (boxId==1){
+                            await actor.update({"data.health.stress.1":true})
+                        }
+                        if (boxId==2){
+                            await actor.update({"data.health.stress.2":true})
+                        }
+                        if (boxId==3){
+                            await actor.update({"data.health.stress.3":true})
+                        }
+                    } else {
+                        if (boxId==1){
+                            await actor.update({"data.health.stress.1":false})
+                        }
+                        if (boxId==2){
+                            await actor.update({"data.health.stress.2":false})
+                        }
+                        if (boxId==3){
+                            await actor.update({"data.health.stress.3":false})
+                        }
+                    }
+
+                }
+                if (con=="Physical Stress"){
+                    if (event.target.checked){
+                        if (boxId==1){
+                            await actor.update({"data.health.stress.physical.1":true})
+                        }
+                        if (boxId==2){
+                            await actor.update({"data.health.stress.physical.2":true})
+                        }
+                        if (boxId==3){
+                            await actor.update({"data.health.stress.physical.3":true})
+                        }
+                        if (boxId==4){
+                            await actor.update({"data.health.stress.physical.4":true})
+                        }
+                    } else {
+                        if (boxId==1){
+                            await actor.update({"data.health.stress.physical.1":false})
+                        }
+                        if (boxId==2){
+                            await actor.update({"data.health.stress.physical.2":false})
+                        }
+                        if (boxId==3){
+                            await actor.update({"data.health.stress.physical.3":false})
+                        }
+                        if (boxId==4){
+                            await actor.update({"data.health.stress.physical.4":false})
+                        }
+                    }
+                }
+                if (con=="Mental Stress"){
+                    if (event.target.checked){
+                        if (boxId==1){
+                            await actor.update({"data.health.stress.mental.1":true})
+                        }
+                        if (boxId==2){
+                            await actor.update({"data.health.stress.mental.2":true})
+                        }
+                        if (boxId==3){
+                            await actor.update({"data.health.stress.mental.3":true})
+                        }
+                        if (boxId==4){
+                            await actor.update({"data.health.stress.mental.4":true})
+                        }
+                    } else {
+                        if (boxId==1){
+                            await actor.update({"data.health.stress.mental.1":false})
+                        }
+                        if (boxId==2){
+                            await actor.update({"data.health.stress.mental.2":false})
+                        }
+                        if (boxId==3){
+                            await actor.update({"data.health.stress.mental.3":false})
+                        }
+                        if (boxId==4){
+                            await actor.update({"data.health.stress.mental.4":false})
+                        }
+                    }
+                }
             }
-            await actor.unsetFlag("FateAddon","conditions");
-            await actor.setFlag("FateAddon","conditions",conditions);
-            await game.socket.emit("module.FateAddon",{"Updated":true});
-            this.render(false);
+
+            if (!game.settings.get("FateAddon", "usesheetstress")){
+                //Otherwise use condition stress
+                var conditions=actor.getFlag("FateAddon","conditions");
+                var condition=conditions.find(c => c.name==con);
+                if (event.target.checked){
+                    condition.boxes[boxId]=true;
+                } else {
+                    condition.boxes[boxId]=false;
+                }
+                //console.log(condition);
+                await actor.unsetFlag("FateAddon","conditions");
+                await actor.setFlag("FateAddon","conditions",conditions);
+                await game.socket.emit("module.FateAddon",{"Updated":true});
+                this.render(false);n
+            }
         }
 
         async _onChangeEvent(event, data) {
@@ -135,6 +233,10 @@ function viewStress(){
                 
                 // We now have everything we need to update the actor's consequences.
                 // They are all the way down in actor.data.data.health.cons
+                if (consequence == "accmild"){
+                    await actor.update({"data.health.cons.mild.value":`${consequenceText}`});
+                }
+
                 if (consequence == "mild1"){
                     //console.log("Should be updating mild");
                     await actor.update({"data.health.cons.mild.one":`${consequenceText}`});
@@ -154,20 +256,45 @@ function viewStress(){
 
         async _onClickButton(event, html) {
                 //This is the functionality to clear the stress of all tokens.
-
                 let tokens = canvas.tokens.placeables;
-                tokens.forEach(async token=>{
-                    var conds = token.actor.getFlag("FateAddon","conditions");
-                    //console.log(conds);
-                    var pStress = conds.find(condition=>condition.name=="Physical Stress");
-                    pStress.marked = 0;
-                    var mStress = conds.find(condition=>condition.name=="Mental Stress");
-                    mStress.marked = 0;
-                    await token.actor.unsetFlag("FateAddon","conditions");
-                    await token.actor.setFlag("FateAddon","conditions",conds);
-                    await game.socket.emit("module.FateAddon",{"Updated":true});
-                    this.render(false);
-                })
+
+                //If we're using core sheet stress:
+                if (game.settings.get("FateAddon", "usesheetstress")){
+                        tokens.forEach(async token=>{
+                        let actor = token.actor;
+                        if (actor.data.type!="Accelerated"){
+                            await actor.update({"data.health.stress.physical":{1:false, 2:false,3:false,4:false}})
+                            await actor.update({"data.health.stress.mental":{1:false, 2:false,3:false,4:false}})
+                        }
+                        else {
+                            await actor.update({"data.health.stress":{1:false, 2:false,3:false}})
+                        }
+                   })
+                }
+                //If we're using condition stress:
+                if (!game.settings.get("FateAddon", "usesheetstress")){
+                    tokens.forEach(async token=>{
+                        var conds = token.actor.getFlag("FateAddon","conditions");
+                        //console.log(conds);
+                        var pStress = conds.find(condition=>condition.name=="Physical Stress");
+                        var pboxes = pStress.boxes;
+                        for (let i=0;i<pboxes.length;i++){
+                            pboxes[i]=false;
+                        }
+                        var mStress = conds.find(condition=>condition.name=="Mental Stress");
+                        var mboxes = mStress.boxes;
+                        for (let i=0;i<mboxes.length;i++){
+                            mboxes[i]=false;
+                        }
+                        //console.log(mStress);
+    
+                        await token.actor.unsetFlag("FateAddon","conditions");
+                        await token.actor.setFlag("FateAddon","conditions",conds);
+                        //console.log(conds);
+                        await game.socket.emit("module.FateAddon",{"Updated":true});
+                        this.render(false);
+                    })
+                }
             }
 
         //This method reads the stress from the tokens in the scene and outputs it to the StressViewer window.
@@ -179,7 +306,7 @@ function viewStress(){
             let table=`<table id="sview" border="1" cellspacing="0" cellpadding="4" style="width: auto;">`;
 
             // Set up the appearance of the table header
-            let rows=[`<tr><td style="background: black; color: white;" width="150">Character</td><td style="background: black; color: white;" width="80">Physical Stress</td><td style="background: black; color: white;" width="80">Mental Stress</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Moderate</td><td style="background: black; color: white;" width="150">Severe</td>`];
+            let rows=[`<tr><td style="background: black; color: white;" width="150">Character</td><td style="background: black; color: white;" width="100">Physical Stress</td><td style="background: black; color: white;" width="100">Mental Stress</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Mild</td><td style="background: black; color: white;" width="150">Moderate</td><td style="background: black; color: white;" width="150">Severe</td></tr>`];
             
             //This is where we get the stress information for each actor.
 
@@ -189,51 +316,144 @@ function viewStress(){
             }
 
             for (let i=0;i<tokens.length;i++){
-                
+            // Don't display if this token is hidden
+            if (tokens[i].data.hidden && !game.user.isGM){
+                continue;
+                                }
                 // Get the token
                 let token = tokens[i];
-               
-                let consequences = token.actor.data.data.health.cons;
+                let actor = token.actor;
+                let consequences = actor.data.data.health.cons;
 
-                // Get this actor's physical stress and mental stress and number of boxes already marked.
-                try {
-                    var pStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Physical Stress");
-                    var mStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
+                if (game.settings.get("FateAddon", "usesheetstress")){
+                    var pboxes = 2;
+                    var mboxes = 2;
+                    var aboxes = 0;
                     
-                    if (pStress==undefined && mStress == undefined){
-                        continue;
+                    if (actor.data.type=="Accelerated"){
+                        pboxes=0;
+                        mboxes=0;
+                        aboxes=3;
                     }
 
-                    if (pStress==undefined){
-                        pStress = {name:"Physical Stress", "boxes":0, "marked":0, "description":"Not Used", "notes":"Not Used"}
+                    var items = token.actor.data.items;
+
+                    if (actor.data.type!="Accelerated"){
+                        items.forEach(item =>{
+                            try {
+                                if (item.data.health.physical && item.data.level >0 && item.data.level <3){
+                                    //Character has three physical stress boxes.
+                                    pboxes = 3;
+                                }
+                                if (item.data.health.physical && item.data.level >=3){
+                                    //Character has four physical stress boxes.
+                                    pboxes = 4;
+                                }
+                                if (item.data.health.mental && item.data.level >0 && item.data.level <3){
+                                    //Character has three mental stress boxes.
+                                    mboxes = 3;
+                                }
+                                if (item.data.health.mental && item.data.level >=3){
+                                    //Character has four mental stress boxes.
+                                    mboxes = 4;
+                                }
+                            } catch {
+                            }
+                        })
                     }
-                    if (mStress == undefined){
-                        mStress = {name:"Mental Stress", "boxes":0, "marked":0, "description":"Not Used", "notes":"Not Used"}
+                    var mboxString =""
+                    var pboxString="";
+                    //Using core sheet stress
+
+                    if (mboxes !=0 && pboxes !=0 && aboxes == 0){
+                        pboxString="<td>"
+
+                        for (let i=1; i<=pboxes;i++){
+                            if (actor.data.data.health.stress.physical[i]){
+                                pboxString+=`<input type ="checkbox" id="${token.id}_Physical Stress_${i}" ${disabled} checked></input>`
+                            }
+                            if (!actor.data.data.health.stress.physical[i]){
+                                pboxString+=`<input type ="checkbox" id="${token.id}_Physical Stress_${i}" ${disabled}></input>`
+                            }
+                        }
+                        pboxString+="</td>"
+
+                        // Here is where we add the mental stress boxes.
+                        mboxString="<td>"
+                        //Need to add the mental stress boxes to mboxString here.
+                        for (let i=1; i<=mboxes;i++){
+                            if (actor.data.data.health.stress.mental[i]){
+                                mboxString+=`<input type ="checkbox" id="${token.id}_Mental Stress_${i}" ${disabled} checked></input>`
+                            }
+                            if (!actor.data.data.health.stress.mental[i]){
+                                mboxString+=`<input type ="checkbox" id="${token.id}_Mental Stress_${i}" ${disabled}></input>`
+                            }
+                        }
+                        mboxString+="</td>"
                     }
-                } catch {
                 }
 
-                var pboxString="<td>"
-                //Need to add the physical stress boxes to pboxString here.
-                for (let i = 0; i<pStress.marked; i++){
-                    pboxString+=`<input type ="checkbox" id="${token.id}_${pStress.name}" ${disabled} checked></input>`
+                if (aboxes !=0){
+                    var aboxString='<td colspan="2" align="center">'
+                    for (let i=1; i<=aboxes;i++){
+                        if (actor.data.data.health.stress[i]){
+                            aboxString+=`<input type ="checkbox" id="${token.id}_Accelerated Stress_${i}" ${disabled} checked></input>`
+                        }
+                        if (!actor.data.data.health.stress[i]){
+                            aboxString+=`<input type ="checkbox" id="${token.id}_Accelerated Stress_${i}" ${disabled}></input>`
+                        }
+                    }
+                    aboxString+="</td>"
                 }
-                for (let i = 0; i<pStress.boxes - pStress.marked; i++){
-                    pboxString+=`<input type ="checkbox" id="${token.id}_${pStress.name}" ${disabled}></input>`
-                }
-                pboxString+="</td>"
+    
+                if (!game.settings.get("FateAddon", "usesheetstress")){
+                    //Using conditions stress
+                        // Get this actor's physical stress and mental stress and number of boxes already marked.
+                        try {
+                                var pStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Physical Stress");
+                                var mStress=token.actor.getFlag("FateAddon","conditions").find(cond=>cond.name=="Mental Stress");
+                                
+                                if ((pStress==undefined || pStress==null) && (mStress == undefined || mStress==null)){
+                                    continue;
+                                }
 
-                var mboxString="<td>"
-                // Here is where we add the mental stress boxes.
-                var mboxString="<td>"
-                //Need to add the mental stress boxes to mboxString here.
-                for (let i = 0; i<mStress.marked; i++){
-                    mboxString+=`<input type ="checkbox" id="${token.id}_${mStress.name}" ${disabled} checked></input>`
+                                if (pStress==undefined){
+                                    pStress = {name:"Physical Stress", "boxes":[], "description":"Not Used", "notes":"Not Used"}
+                                }
+                                if (mStress == undefined){
+                                    mStress = {name:"Mental Stress", "boxes":[], "description":"Not Used", "notes":"Not Used"}
+                                }
+                    } catch {
+                            continue;
+                    }
+
+                    var pboxString="<td>"
+                    //Need to add the physical stress boxes to pboxString here.
+            
+                    for (let i = 0; i<pStress.boxes.length; i++){
+                        if (pStress.boxes[i]==true){
+                            pboxString+=`<input type ="checkbox" id="${token.id}_${pStress.name}_${i}" ${disabled} checked></input>`
+                        }
+                        if (pStress.boxes[i]==false){
+                            pboxString+=`<input type ="checkbox" id="${token.id}_${pStress.name}_${i}" ${disabled}></input>`
+                        }
+                    }
+                    pboxString+="</td>"
+
+                    var mboxString="<td>"
+                    // Here is where we add the mental stress boxes.
+                    var mboxString="<td>"
+                    //Need to add the mental stress boxes to mboxString here.
+                    for (let i = 0; i<mStress.boxes.length; i++){
+                        if (mStress.boxes[i]==true){
+                            mboxString+=`<input type ="checkbox" id="${token.id}_${mStress.name}_${i}" ${disabled} checked></input>`
+                        }
+                        if (mStress.boxes[i]==false){
+                            mboxString+=`<input type ="checkbox" id="${token.id}_${mStress.name}_${i}" ${disabled}></input>`
+                        }
+                    }
+                    mboxString+="</td>"
                 }
-                for (let i = 0; i<mStress.boxes - mStress.marked; i++){
-                    mboxString+=`<input type ="checkbox" id="${token.id}_${mStress.name}" ${disabled}></input>`
-                }
-                mboxString+="</td>"
 
                 //We need to not display a second Mild consequence if the actor isn't entitled to one. 
                 var mild2 = "";
@@ -247,12 +467,19 @@ function viewStress(){
                     } catch {
                     }
                 })
+                var mildOne=``;
+                if (actor.data.type=="Accelerated"){
+                    mildOne=`<td><textarea name="consequence" ${FateAddon.style} id="accmild_${token.id}" ${disabled}>${consequences.mild.value}</textarea></td>`
+                } else {
+                    mildOne = `<td><textarea name="consequence" ${FateAddon.style} id="mild1_${token.id}" ${disabled}>${consequences.mild.one}</textarea></td>`
+                }
 
                 let row = `<tr>
                             <td>${token.name}</td>
                             ${pboxString}
                             ${mboxString}
-                            <td><textarea name="consequence" ${FateAddon.style} id="mild1_${token.id}" ${disabled}>${consequences.mild.one}</textarea></td>
+                            ${aboxString}
+                            ${mildOne}
                             <td>${mild2}</td>
                             <td><textarea name="consequence" ${FateAddon.style}id="moderate_${token.id}" ${disabled}>${consequences.moderate.value}</textarea></td>
                             <td><textarea name="consequence" ${FateAddon.style} id="severe_${token.id}" ${disabled}>${consequences.severe.value}</textarea></td>
@@ -264,7 +491,8 @@ function viewStress(){
             if(game.user.isGM){
                 myContents+=`<tr><td colspan="7" align="center"><button style="height:30px; width:200px" name="clear">Clear All Stress</button></td></tr>`;
             }
-            myContents+="</table>"            
+            myContents+="</table>"     
+            console.log(myContents)       
             return myContents;    
         }
         getData (){
@@ -308,6 +536,12 @@ function viewAspects(){
         setTimeout(function(){viewer.render(false);},delay);
     })
 
+    Hooks.on('updateToken', (scene, token, data) => {
+        if (data.hidden!=undefined){
+          setTimeout(function(){viewer.render(false);},delay);
+        }
+    })
+
     class AspectViewer extends Application {
         super(options){
         }
@@ -332,11 +566,16 @@ function viewAspects(){
             
             for (let i=0;i<tokens.length;i++){
                 
+                // Don't display if this token is hidden
+                if (tokens[i].data.hidden && !game.user.isGM){
+                    continue;
+                }
+
                 // Get the actor
                 let actor = tokens[i].actor;
 
                 // get name
-                var charName=actor.name;
+                var charName=tokens[i].name;
                 //console.log(name);
 
                 // get High Concept
@@ -505,18 +744,17 @@ async function manageConditions(a){
     //console.log(conditions);
     
     //Initialise physical stress and mental stress for this actor, as no conditions have been set up yet.
-    if (conditions == undefined){
+    //                if (!game.settings.get("FateAddon", "usesheetstress")){
+    if (conditions == undefined && !game.settings.get("FateAddon", "usesheetstress")){
         conditions = [
             {
                 "name":"Physical Stress",
-                "boxes":3,
-                "marked":0,
+                "boxes":[false,false,false],
                 "description":"Physical Stress (used by StressViewer)",
                 "notes":""
             },{
                 "name":"Mental Stress",
-                "boxes":3,
-                "marked":0,
+                "boxes":[false,false,false],
                 "description":"Mental Stress (used by StressViewer)",
                 "notes":""
             }
@@ -572,10 +810,11 @@ async function manageConditions(a){
             var c = event.target.checked;
             //console.log(event.target.name);
             if (c){
-                conditions.find(condition => condition.name==event.target.name).marked++;
+                conditions.find(condition => condition.name==event.target.name).boxes[event.target.id]=true;
             }
             if (!c){
-                conditions.find(condition => condition.name==event.target.name).marked--;
+                conditions.find(condition => condition.name==event.target.name).boxes[event.target.id]=false;
+                //console.log(event.target.id);
             }
             await actor.unsetFlag("FateAddon","conditions");
             await actor.setFlag("FateAddon","conditions",conditions);
@@ -584,12 +823,18 @@ async function manageConditions(a){
         }
 
         getData(){
+            var pcondmanage = game.settings.get("FateAddon", "pcondmanage");
+            var pcondedit = game.settings.get("FateAddon", "pcondedit");
             var disabled="";
-            if (!game.user.isGM){
+
+            if (!game.user.isGM && pcondmanage==false){
                 disabled="disabled";
             }
             super.getData();
             conditions = actor.getFlag("FateAddon","conditions");
+            if (conditions==undefined){
+                conditions=[];
+            }
             var myContent ="";
             let table=`<table id="cview" border="1" cellspacing="0" cellpadding="4" style="width: 800px; height: auto">`;
             myContent+=`${table}<tr><td style="background: black; color: white;">Name</td><td style="background: black; color: white; width">Boxes</td><td style="background: black; color: white;">Notes</td></tr>`
@@ -597,17 +842,19 @@ async function manageConditions(a){
                 myContent+="<tr>";
                 myContent+=`<td>${condition.name}</td>`;
                 myContent+=`<td>`;
-                for (let i = 0; i<condition.marked; i++){
-                    myContent+=`<input type ="checkbox" name="${condition.name}" checked ${disabled}></input>`
-                }
-                for (let i = 0; i<condition.boxes - condition.marked; i++){
-                    myContent+=`<input type ="checkbox" name="${condition.name}" ${disabled}></input>`
+                for (let i = 0; i<condition.boxes.length;i++){
+                    if (condition.boxes[i]==false){
+                        myContent+=`<input type ="checkbox" name="${condition.name}" id="${i}" ${disabled}></input>`
+                    }
+                    if (condition.boxes[i]==true){
+                        myContent+=`<input type ="checkbox" name="${condition.name}" id="${i}" checked ${disabled}></input>`
+                    }
                 }
                 myContent+=`</td>`;
                 myContent+=`<td><textarea id="${condition.name}" ${FateAddon.style} ${disabled}>${condition.notes}</textarea></td>`
                 myContent+="</tr>";
             })
-            if (game.user.isGM){
+            if (game.user.isGM || pcondedit==true){
                 myContent+=`<tr><td colspan="3" align="center"><button type="button" id="editConditions" style="height:30px; width:200px">Edit or Add Conditions</button></td></tr>`
             }
             myContent+="</table>";
@@ -627,6 +874,9 @@ async function manageConditions(a){
             })
             super.getData();
             conditions = actor.getFlag("FateAddon","conditions");
+            if (conditions==undefined){
+                conditions = [];
+            }
             var myContent = "";
             let table=`<table id="cview" border="1" cellspacing="0" cellpadding="4" style="width: 800px;">`;
             myContent+=`${table}<tr><td style="background: black; color: white;">Name</td><td style="background: black; color: white; width">Boxes</td><td style="background: black; color: white;">Description</td><td style="background: black; color: white;"></td></tr>`
@@ -636,8 +886,7 @@ async function manageConditions(a){
                 let name = condition.name;
                 myContent+=`<td>${name}</td>`
                 let boxes = condition.boxes;
-                let marked = condition.marked;
-                myContent+=`<td><input type="number" ${FateAddon.style} id="${name}" value=${boxes}></input></td>`
+                myContent+=`<td><input type="number" ${FateAddon.style} id="${name}" value=${boxes.length}></input></td>`
                 let description = condition.description;
                 myContent+=`<td><textarea ${FateAddon.style} id="${name}">${description}</textarea></td>`
                 myContent+=`<td><button buttontype="button" name="delete" id="${name}"><i class = "fas fa-trash"></button></td>`
@@ -666,9 +915,15 @@ async function manageConditions(a){
 
           async _onInputBoxesChange(event, html){
                 var n = event.target.id;
-                conditions.find(condition => condition.name==n).boxes=parseInt(event.target.value);
+                var boxes = parseInt(event.target.value);
+                var boxArray = [];
+                for (let i = 0;i<boxes;i++){
+                    boxArray.push(false);
+                }
+                conditions.find(condition => condition.name==n).boxes=boxArray;
                 await actor.unsetFlag("FateAddon","conditions");
                 await actor.setFlag("FateAddon","conditions",conditions);
+                //console.log(conditions);
                 await game.socket.emit("module.FateAddon",{"Updated":true});
           }
 
@@ -705,17 +960,23 @@ async function manageConditions(a){
                   //action to perform when the add button is pressed (add this condition to list of conditions)
                   async _onClickButton(event, html){
                       let name = html.find("input[id='cName']")[0].value.trim();
-                      let boxes = parseInt(html.find("input[id='boxes']")[0].value,10);
+                      let numboxes = parseInt(html.find("input[id='boxes']")[0].value,10);
+                      //console.log(numboxes);
+                      let boxes = [];
+                      for (let i = 0; i<numboxes; i++){
+                            boxes.push(false);
+                      }
                       let description = html.find("textarea")[0].value.trim();
-                      //console.log(`${name} for ${boxes} boxes and ${description} as the description`);
-      
                       let newCondition = {
-                                            "name":`${name}`,
-                                            "boxes":`${boxes}`,
-                                            "marked":0,
-                                            "description":`${description}`,
+                                            "name":name,
+                                            "boxes":boxes,
+                                            "description":description,
                                             "notes":""
                                         }
+                        if (conditions==undefined){
+                            conditions=[];
+                        }
+
                         if (conditions.find(con => con.name == name)){
                             ui.notifications.error("Can't create duplicate condition.")
                         } else {
@@ -804,6 +1065,9 @@ async function manageConditions(a){
             setTimeout(function(){viewer.render(false);},delay);
         }
     })
+    Hooks.on('updateActor', () => {
+        setTimeout(function(){viewer.render(false);},delay);
+    })
 }
 
 Hooks.on('renderTokenHUD', function(hudButtons, html, data){
@@ -820,3 +1084,29 @@ Hooks.on('renderTokenHUD', function(hudButtons, html, data){
     }
 })
 
+Hooks.on('ready', () => {
+	game.settings.register("FateAddon", "pcondmanage", {
+		name: "Players can manage conditions?",
+		hint: "If this is set to false, players will not be able to manage their own existing conditions and you will need to do it for them.",
+		scope: "world",
+		config: true,
+		default: true,
+		type: Boolean
+    });
+    game.settings.register("FateAddon", "pcondedit", {
+		name: "Players can edit conditions?",
+		hint: "If this is set to false, players will not be able to add, edit, or delete their conditions and you will need to do it for them.",
+		scope: "world",
+		config: true,
+		default: true,
+		type: Boolean
+    });
+    game.settings.register("FateAddon", "usesheetstress", {
+		name: "Use sheet stress?",
+		hint: "If this is set to true, uses the stress boxes from the Core sheet rather than from Conditions.",
+		scope: "world",
+		config: true,
+		default: false,
+		type: Boolean
+    });
+})

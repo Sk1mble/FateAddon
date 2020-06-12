@@ -5,9 +5,9 @@
   "system":"fate",
   "author": "Richard Bellingham (Skimble)",
   "scripts": ["./FateAddon.js"],
-  "version": "3.1.0",
+  "version": "3.2.0",
   "minimumCoreVersion": "0.6.0",
   "compatibleCoreVersion":"0.6.2",
-  "download":"https://github.com/Sk1mble/FateAddon/archive/FateAddon-3.1.zip",
+  "download":"https://github.com/Sk1mble/FateAddon/archive/FateAddon-3.2.zip",
   "socket":true
 }

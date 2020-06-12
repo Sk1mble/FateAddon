@@ -1,0 +1,12 @@
+Changelog for FateAddon 3.2
+
+1) Now has settings in the module settings window:
+ a) Allow users to manage their own conditions? -- If false, users can't tick or untick condition boxes or amend the notes.
+ b) Allow users to create/edit/delete their own conditions? -- If false, users can't create, delete, or edit the number of boxes or condition description for their conditions.
+ c) Use sheet stress? -- This means you can now use the stress boxes shown on the character sheet instead of having to use Conditions for Physical and Mental stress, if you want to. Supports both Core and Accelerated. If this is set to true, opening the condition manager for a character without Physical and Mental stressboxes won't initialise them with Physical and Mental stressboxes. HOWEVER, if you change your mind later and switch to condition checkboxes, you'll need to manually set up conditions called Physical Stress and Mental Stress as it won't be done automatically after you've used the Condition Manager with Use Sheet Stress turned on.
+ 
+ 2) Tweaked the Stress viewer to properly show Accelerated characters' stress and consequences.
+ 3) Tweaked Aspect Viewer and Stress Viewer so they won't display any token that's currently set to Hidden.
+ 
+
+
