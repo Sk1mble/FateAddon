@@ -8,9 +8,5 @@ Changelog for FateAddon 3.2
  2) Tweaked the Stress viewer to properly show Accelerated characters' stress and consequences.
  3) Tweaked Aspect Viewer and Stress Viewer so they won't display any token that's currently set to Hidden.
  
- WARNING: To support sheet stress, I had to reengineer how I was keeping track of marked boxes. This update will break any existing conditions on your characters.
- To fix them you will just need to go into the Condition Manager and set the number of boxes they should have, but you WILL lose data about any condition boxes that were checked before this update.
- Please ensure you make notes as necessary BEFORE updating.
- 
 
 

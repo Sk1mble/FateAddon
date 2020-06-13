@@ -393,7 +393,7 @@ function viewStress(){
                     }
                 }
 
-                if (aboxes !=0){
+                if (aboxes !=0 && aboxes != undefined){
                     var aboxString='<td colspan="2" align="center">'
                     for (let i=1; i<=aboxes;i++){
                         if (actor.data.data.health.stress[i]){
@@ -404,7 +404,7 @@ function viewStress(){
                         }
                     }
                     aboxString+="</td>"
-                }
+                } else {aboxString=""};
     
                 if (!game.settings.get("FateAddon", "usesheetstress")){
                     //Using conditions stress
@@ -491,7 +491,7 @@ function viewStress(){
             if(game.user.isGM){
                 myContents+=`<tr><td colspan="7" align="center"><button style="height:30px; width:200px" name="clear">Clear All Stress</button></td></tr>`;
             }
-            myContents+="</table>"     
+            myContents+="</table>"
             return myContents;    
         }
         getData (){
@@ -857,7 +857,6 @@ async function manageConditions(a){
                 myContent+=`<tr><td colspan="3" align="center"><button type="button" id="editConditions" style="height:30px; width:200px">Edit or Add Conditions</button></td></tr>`
             }
             myContent+="</table>";
-            //console.log(myContent);
             let content={content:`${myContent}`}
             return content;
         }
