@@ -8,5 +8,6 @@ Changelog for FateAddon 3.2
  2) Tweaked the Stress viewer to properly show Accelerated characters' stress and consequences.
  3) Tweaked Aspect Viewer and Stress Viewer so they won't display any token that's currently set to Hidden.
  
-
+Changelog for FateAddon 3.2.1
+Fixed an issue that was causing the StressViewer tabulation to break.
 
