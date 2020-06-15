@@ -111,8 +111,8 @@ function viewStress(){
             var actor = token.actor;
 
             if (game.settings.get("FateAddon", "usesheetstress")){
-                //Do this if they want to use sheet stress
-                if (con="Accelerated Stress"){
+                //Do this if they want to use sheet stress     
+                if (con=="Accelerated Stress"){
                     if (event.target.checked){
                         if (boxId==1){
                             await actor.update({"data.health.stress.1":true})
@@ -134,9 +134,9 @@ function viewStress(){
                             await actor.update({"data.health.stress.3":false})
                         }
                     }
-
                 }
                 if (con=="Physical Stress"){
+                    console.log("Physical Stress");
                     if (event.target.checked){
                         if (boxId==1){
                             await actor.update({"data.health.stress.physical.1":true})
