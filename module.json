@@ -9,5 +9,6 @@
   "minimumCoreVersion": "0.6.0",
   "compatibleCoreVersion":"0.6.2",
   "download":"https://github.com/Sk1mble/FateAddon/archive/FateAddon-3.0.zip",
+  "manifest":"https://raw.githubusercontent.com/Sk1mble/FateAddon/FateAddon-3.0/module.json",
   "socket":true
 }
